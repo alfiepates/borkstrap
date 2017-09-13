@@ -1,6 +1,6 @@
 require "rspec"
 
-load File.join(__dir__, "borkstrap")
+load File.join(__dir__, "../borkstrap")
 RSpec.describe Borkstrap::OptionParser do
 	describe "--repo" do
 		it "can be set to a GitHub short name" do
