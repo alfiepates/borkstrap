@@ -1,0 +1,43 @@
+#!/usr/bin/env ruby
+
+# === borkstrap ===
+# https://github.com/alfiepates/borkstrap
+
+require 'optparse'
+
+module Borkstrap
+	class OptionParser
+		def initialize(arguments)
+			@arguments = arguments
+		end
+
+		def call
+			options = {}
+			::OptionParser.new do |option_parser|
+				option_parser.banner = "Usage: ./borkstrap [options]" 
+
+				option_parser.on("-r", "--repo repository", String,
+					"Pull a Git repository with a Bork configuration") do |repository|
+
+					options[:repo] = 
+						if github_shortname?(repository)
+							"https://github.com/#{repository}"
+						else
+							repository
+						end
+				end
+			end.parse!(@arguments)
+			options
+		end
+
+		private
+
+		def github_shortname?(url)
+			url.scan("/").length == 1
+		end
+	end
+end
+
+if __FILE__ == $0
+	Borkstrap::OptionParser.new(ARGV).call
+end
