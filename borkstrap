@@ -36,6 +36,24 @@ module Borkstrap
 			url.scan("/").length == 1
 		end
 	end
+
+	class Host
+		def self.current
+			new(os: RUBY_PLATFORM =~ /darwin/ ? :mac : :linux)
+		end
+
+		def initialize(os: :os_not_supplied)
+			@os = os
+		end
+
+		def mac?
+			@os == :mac
+		end
+
+		def linux?
+    		@os == :linux
+		end
+	end
 end
 
 if __FILE__ == $0
