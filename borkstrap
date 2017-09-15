@@ -39,19 +39,15 @@ module Borkstrap
 
 	class Host
 		def self.current
-			new(os: RUBY_PLATFORM =~ /darwin/ ? :mac : :linux)
+			new(mac: RUBY_PLATFORM =~ /darwin/)
 		end
 
-		def initialize(os: :os_not_supplied)
-			@os = os
+		def initialize(mac: raise(ArgumentError, "missing keyword :mac"))
+			@mac = mac
 		end
 
 		def mac?
-			@os == :mac
-		end
-
-		def linux?
-    		@os == :linux
+			@mac 
 		end
 	end
 end
