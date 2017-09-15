@@ -6,16 +6,14 @@ RSpec.describe Borkstrap::Host do
 	end
 
 	context "when running on macOS" do
-		subject { described_class.new(os: :mac) }
+		subject { described_class.new(mac: true) }
  
 		it { is_expected.to be_mac }
-		it { is_expected.not_to be_linux }
 	end
 
 	context "when running on Linux" do
-		subject { described_class.new(os: :linux) }
+		subject { described_class.new(mac: false) }
  
 		it { is_expected.not_to be_mac }
-		it { is_expected.to be_linux }
 	end
 end
