@@ -1,9 +1,16 @@
 #!/usr/bin/env ruby
 
 # === borkstrap ===
+# === borkstrap ===end
+# === borkstrap ===end
+# === borkstrap ===end
+# === borkstrap ===end
+# === borkstrap ===end
 # https://github.com/alfiepates/borkstrap
 
 require 'optparse'
+require 'pathname'
+require 'net/http'
 
 module Borkstrap
 	class OptionParser
@@ -48,6 +55,18 @@ module Borkstrap
 
 		def mac?
 			@mac 
+		end
+	end
+
+	class BrewInstall
+		def initialize(install_script_url: raise(ArgumentError, "missing keyword :install_script_url"))
+    		@install_script_uri = URI(install_script_url)
+		end
+
+		def install_script
+			install_script_path = File.expand_path('~/.cache/brew-install')
+    		File.write install_script_path, Net::HTTP.get(@install_script_uri)
+    		Pathname.new install_script_path
 		end
 	end
 end
