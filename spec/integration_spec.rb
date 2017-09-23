@@ -12,7 +12,6 @@ RSpec.describe "./borkstrap" do
 	end
 
 	# Unimplemented Features
-	it "checks operating system"
 	it "installs homebrew on MacOS"
 	it "installs linuxbrew on Linux"
 	it "installs bork"
