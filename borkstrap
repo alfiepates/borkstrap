@@ -20,9 +20,15 @@ module Borkstrap
 		end
 
 		def call
-			options = {}
+			options = { bork_head: false }
 			::OptionParser.new do |option_parser|
 				option_parser.banner = "Usage: ./borkstrap [options]"
+
+				option_parser.on("--[no-]bork-HEAD",
+					"Install Bork from HEAD instead of release") do |bork_head|
+
+					options[:bork_head] = bork_head
+				end
 
 				option_parser.on("-r", "--repo repository", String,
 					"Pull a Git repository with a Bork configuration") do |repository|
@@ -118,12 +124,12 @@ module Borkstrap
 	])
 
 	if __FILE__ == $0
-		OptionParser.new(ARGV).call
+		options = OptionParser.new(ARGV).call
 
 		puts "Installing Homebrew"
 		BrewInstall.new(install_script_url: Host.instance.platform.brew_url).install
 
 		puts "Installing Bork"
-		BorkInstall.new.install
+		BorkInstall.new(head: options[:bork_head]).install
 	end
 end
