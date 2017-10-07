@@ -5,8 +5,15 @@
 
 require 'optparse'
 require 'open-uri'
+require 'singleton'
 
 module Borkstrap
+	module RequiredKeywordArguments
+		def need(keyword)
+			raise ArgumentError, "missing keyword #{keyword.inspect}"
+		end
+	end
+
 	class OptionParser
 		def initialize(arguments)
 			@arguments = arguments
@@ -38,22 +45,35 @@ module Borkstrap
 		end
 	end
 
+	class Cases
+		Entry = Struct.new(:key, :value)
+
+		def initialize(cases)
+			@cases = cases
+		end
+
+		def lookup(query)
+			@cases.each { |c| return c.value if c.key === query }
+			raise KeyError
+		end
+
+		def value?(query)
+			@cases.any? { |c| c.value == query }
+		end
+	end
+
 	class Host
-		def self.current
-			new(mac: RUBY_PLATFORM =~ /darwin/)
-		end
+		include Singleton
 
-		def initialize(mac: raise(ArgumentError, "missing keyword :mac"))
-			@mac = mac
-		end
-
-		def mac?
-			@mac
+		def platform
+			PLATFORMS.lookup(RUBY_PLATFORM)
 		end
 	end
 
 	class BrewInstall
-		def initialize(install_script_url: raise(ArgumentError, "missing keyword :install_script_url"))
+		include RequiredKeywordArguments
+
+		def initialize(install_script_url: need(:install_script_url))
 			@install_script_url = install_script_url
 		end
 
@@ -61,6 +81,25 @@ module Borkstrap
 			eval open(@install_script_url).read
 		end
 	end
+
+	class Platform
+		include RequiredKeywordArguments
+
+		attr_reader :brew_url
+
+		def initialize(brew_url: need(:brew_url))
+			@brew_url = brew_url
+		end
+	end
+
+	PLATFORMS = Cases.new([
+		Cases::Entry.new(/linux/, Platform.new(
+			brew_url: "Linuxbrew/install",
+		)),
+		Cases::Entry.new(/darwin/, Platform.new(
+			brew_url: "Homebrew/install",
+		)),
+	])
 end
 
 if __FILE__ == $0
