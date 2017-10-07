@@ -4,8 +4,16 @@
 # https://github.com/alfiepates/borkstrap
 
 require 'optparse'
+require 'open-uri'
+require 'singleton'
 
 module Borkstrap
+	module RequiredKeywordArguments
+		def need(keyword)
+			raise ArgumentError, "missing keyword #{keyword.inspect}"
+		end
+	end
+
 	class OptionParser
 		def initialize(arguments)
 			@arguments = arguments
@@ -14,12 +22,12 @@ module Borkstrap
 		def call
 			options = {}
 			::OptionParser.new do |option_parser|
-				option_parser.banner = "Usage: ./borkstrap [options]" 
+				option_parser.banner = "Usage: ./borkstrap [options]"
 
 				option_parser.on("-r", "--repo repository", String,
 					"Pull a Git repository with a Bork configuration") do |repository|
 
-					options[:repo] = 
+					options[:repo] =
 						if github_shortname?(repository)
 							"https://github.com/#{repository}"
 						else
@@ -37,21 +45,66 @@ module Borkstrap
 		end
 	end
 
-	class Host
-		def self.current
-			new(mac: RUBY_PLATFORM =~ /darwin/)
+	class Cases
+		Entry = Struct.new(:key, :value)
+
+		def initialize(cases)
+			@cases = cases
 		end
 
-		def initialize(mac: raise(ArgumentError, "missing keyword :mac"))
-			@mac = mac
+		def lookup(query)
+			@cases.each { |c| return c.value if c.key === query }
+			raise KeyError
 		end
 
-		def mac?
-			@mac 
+		def value?(query)
+			@cases.any? { |c| c.value == query }
 		end
 	end
-end
 
-if __FILE__ == $0
-	Borkstrap::OptionParser.new(ARGV).call
+	class Host
+		include Singleton
+
+		def platform
+			PLATFORMS.lookup(RUBY_PLATFORM)
+		end
+	end
+
+	class BrewInstall
+		include RequiredKeywordArguments
+
+		def initialize(install_script_url: need(:install_script_url))
+			@install_script_url = install_script_url
+		end
+
+		def install
+			system("ruby", in: open(@install_script_url)) or raise "brew installation failed"
+		end
+	end
+
+	class Platform
+		include RequiredKeywordArguments
+
+		attr_reader :brew_url
+
+		def initialize(brew_url: need(:brew_url))
+			@brew_url = brew_url
+		end
+	end
+
+	PLATFORMS = Cases.new([
+		Cases::Entry.new(/linux/, Platform.new(
+			brew_url: "https://raw.githubusercontent.com/Linuxbrew/install/master/install",
+		)),
+		Cases::Entry.new(/darwin/, Platform.new(
+			brew_url: "https://raw.githubusercontent.com/Homebrew/install/master/install",
+		)),
+	])
+
+	if __FILE__ == $0
+		OptionParser.new(ARGV).call
+
+		puts "Installing Homebrew"
+		BrewInstall.new(install_script_url: Host.instance.platform.brew_url).install
+	end
 end
