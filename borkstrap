@@ -1,16 +1,11 @@
 #!/usr/bin/env ruby
 
 # === borkstrap ===
-# === borkstrap ===end
-# === borkstrap ===end
-# === borkstrap ===end
-# === borkstrap ===end
-# === borkstrap ===end
 # https://github.com/alfiepates/borkstrap
 
 require 'optparse'
-require 'pathname'
 require 'net/http'
+require 'tempfile'
 
 module Borkstrap
 	class OptionParser
@@ -21,12 +16,12 @@ module Borkstrap
 		def call
 			options = {}
 			::OptionParser.new do |option_parser|
-				option_parser.banner = "Usage: ./borkstrap [options]" 
+				option_parser.banner = "Usage: ./borkstrap [options]"
 
 				option_parser.on("-r", "--repo repository", String,
 					"Pull a Git repository with a Bork configuration") do |repository|
 
-					options[:repo] = 
+					options[:repo] =
 						if github_shortname?(repository)
 							"https://github.com/#{repository}"
 						else
@@ -54,19 +49,34 @@ module Borkstrap
 		end
 
 		def mac?
-			@mac 
+			@mac
 		end
 	end
 
 	class BrewInstall
 		def initialize(install_script_url: raise(ArgumentError, "missing keyword :install_script_url"))
-    		@install_script_uri = URI(install_script_url)
+			@install_script_uri = URI(install_script_url)
 		end
 
 		def install_script
-			install_script_path = File.expand_path('~/.cache/brew-install')
-    		File.write install_script_path, Net::HTTP.get(@install_script_uri)
-    		Pathname.new install_script_path
+			@install_script ||= fetch_install_script
+		end
+
+		private
+
+		def fetch_install_script
+			install_script_on_disk = Tempfile.new('brew-install')
+			Net::HTTP.start(@install_script_uri.host, @install_script_uri.port, use_ssl: true) do |http|
+				request = Net::HTTP::Get.new @install_script_uri
+
+				http.request request do |response|
+					response.read_body do |chunk|
+						install_script_on_disk.write chunk
+					end
+					install_script_on_disk.rewind
+				end
+			end
+			install_script_on_disk
 		end
 	end
 end
