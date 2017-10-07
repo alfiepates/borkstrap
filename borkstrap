@@ -78,7 +78,23 @@ module Borkstrap
 		end
 
 		def install
-			system("ruby", in: open(@install_script_url)) or raise "brew installation failed"
+			system "ruby", in: open(@install_script_url) or raise "brew installation failed"
+		end
+	end
+
+	class BorkInstall
+		def initialize(head: false)
+			@head = head
+		end
+
+		def head?
+			@head
+		end
+
+		def install
+			command = %W`brew install bork`
+			command << "--HEAD" if head?
+			system *command
 		end
 	end
 
@@ -106,5 +122,8 @@ module Borkstrap
 
 		puts "Installing Homebrew"
 		BrewInstall.new(install_script_url: Host.instance.platform.brew_url).install
+
+		puts "Installing Bork"
+		BorkInstall.new.install
 	end
 end
