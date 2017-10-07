@@ -1,19 +1,14 @@
 require "spec_helper"
 
 RSpec.describe Borkstrap::Host do
-	specify ".current returns information for the current host" do
-		expect(described_class.current).to be_a described_class
-	end
+	subject { described_class.instance }
 
-	context "when running on macOS" do
-		subject { described_class.new(mac: true) }
- 
-		it { is_expected.to be_mac }
-	end
+  it "is a singleton" do
+  	expect(described_class).not_to respond_to :new
+  	expect(described_class.instance).to be_a described_class
+  end
 
-	context "when running on Linux" do
-		subject { described_class.new(mac: false) }
- 
-		it { is_expected.not_to be_mac }
-	end
+  specify "#platform returns a platform" do
+  	expect(subject.platform).to satisfy { |x| Borkstrap::PLATFORMS.value?(x) }
+  end
 end
