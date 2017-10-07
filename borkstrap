@@ -4,8 +4,7 @@
 # https://github.com/alfiepates/borkstrap
 
 require 'optparse'
-require 'net/http'
-require 'tempfile'
+require 'open-uri'
 
 module Borkstrap
 	class OptionParser
@@ -55,28 +54,11 @@ module Borkstrap
 
 	class BrewInstall
 		def initialize(install_script_url: raise(ArgumentError, "missing keyword :install_script_url"))
-			@install_script_uri = URI(install_script_url)
+			@install_script_url = install_script_url
 		end
 
-		def install_script
-			@install_script ||= fetch_install_script
-		end
-
-		private
-
-		def fetch_install_script
-			install_script_on_disk = Tempfile.new('brew-install')
-			Net::HTTP.start(@install_script_uri.host, @install_script_uri.port, use_ssl: true) do |http|
-				request = Net::HTTP::Get.new @install_script_uri
-
-				http.request request do |response|
-					response.read_body do |chunk|
-						install_script_on_disk.write chunk
-					end
-					install_script_on_disk.rewind
-				end
-			end
-			install_script_on_disk
+		def install
+			eval open(@install_script_url).read
 		end
 	end
 end

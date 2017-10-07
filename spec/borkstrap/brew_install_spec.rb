@@ -3,6 +3,7 @@ require "webmock/rspec"
 $VERBOSE = old_verbose
 
 require "spec_helper"
+require 'tempfile'
 
 RSpec.describe Borkstrap::BrewInstall do
 	subject { described_class.new(install_script_url: "https://example.com") }
