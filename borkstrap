@@ -20,9 +20,15 @@ module Borkstrap
 		end
 
 		def call
-			options = {}
+			options = { bork_head: false }
 			::OptionParser.new do |option_parser|
 				option_parser.banner = "Usage: ./borkstrap [options]"
+
+				option_parser.on("--[no-]bork-HEAD",
+					"Install Bork from HEAD instead of release") do |bork_head|
+
+					options[:bork_head] = bork_head
+				end
 
 				option_parser.on("-r", "--repo repository", String,
 					"Pull a Git repository with a Bork configuration") do |repository|
@@ -78,7 +84,45 @@ module Borkstrap
 		end
 
 		def install
-			system("ruby", in: open(@install_script_url)) or raise "brew installation failed"
+			install_r, install_w = IO.pipe
+			tee_r, tee_w = IO.pipe
+
+			installer_pid = spawn("ruby", in: open(@install_script_url), out: install_w)
+			tee_pid = spawn("tee", "/dev/stderr", in: install_r, err: tee_w)
+
+			Process.wait(installer_pid)
+			install_w.close
+			Process.wait(tee_pid)
+			tee_w.close
+
+			if match = tee_r.read.match(/^Warning: (.*) is not in your PATH.$/)
+				brew_bin = match[1]
+				ENV["PATH"] = "#{brew_bin}#{File::PATH_SEPARATOR}#{ENV["PATH"]}"
+			end
+		end
+	end
+
+	class BorkInstall
+		def initialize(head: false)
+			@head = head
+		end
+
+		def head?
+			@head
+		end
+
+		def install
+			install_prequisites
+
+			command = %W`brew install bork`
+			command << "--HEAD" if head?
+			system *command
+		end
+
+		private
+
+		def install_prequisites
+			system "brew install gcc git"
 		end
 	end
 
@@ -102,9 +146,12 @@ module Borkstrap
 	])
 
 	if __FILE__ == $0
-		OptionParser.new(ARGV).call
+		options = OptionParser.new(ARGV).call
 
 		puts "Installing Homebrew"
 		BrewInstall.new(install_script_url: Host.instance.platform.brew_url).install
+
+		puts "Installing Bork"
+		BorkInstall.new(head: options[:bork_head]).install
 	end
 end
