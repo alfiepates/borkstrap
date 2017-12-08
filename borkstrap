@@ -84,7 +84,21 @@ module Borkstrap
 		end
 
 		def install
-			system "ruby", in: open(@install_script_url) or raise "brew installation failed"
+			install_r, install_w = IO.pipe
+			tee_r, tee_w = IO.pipe
+
+			installer_pid = spawn("ruby", in: open(@install_script_url), out: install_w)
+			tee_pid = spawn("tee", "/dev/stderr", in: install_r, err: tee_w)
+
+			Process.wait(installer_pid)
+			install_w.close
+			Process.wait(tee_pid)
+			tee_w.close
+
+			if match = tee_r.read.match(/^Warning: (.*) is not in your PATH.$/)
+				brew_bin = match[1]
+				ENV["PATH"] = "#{brew_bin}#{File::PATH_SEPARATOR}#{ENV["PATH"]}"
+			end
 		end
 	end
 
@@ -98,9 +112,17 @@ module Borkstrap
 		end
 
 		def install
+			install_prequisites
+
 			command = %W`brew install bork`
 			command << "--HEAD" if head?
 			system *command
+		end
+
+		private
+
+		def install_prequisites
+			system "brew install gcc git"
 		end
 	end
 
