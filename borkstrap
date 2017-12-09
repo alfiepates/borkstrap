@@ -51,28 +51,20 @@ module Borkstrap
 		end
 	end
 
-	class Cases
-		Entry = Struct.new(:key, :value)
-
-		def initialize(cases)
-			@cases = cases
-		end
-
-		def lookup(query)
-			@cases.each { |c| return c.value if c.key === query }
-			raise KeyError
-		end
-
-		def value?(query)
-			@cases.any? { |c| c.value == query }
-		end
-	end
-
 	class Host
 		include Singleton
 
 		def platform
-			PLATFORMS.lookup(RUBY_PLATFORM)
+			case RUBY_PLATFORM
+			when /linux/
+				Platform.new(
+					brew_url: "https://raw.githubusercontent.com/Linuxbrew/install/master/install",
+				)
+			when /darwin/
+				Platform.new(
+					brew_url: "https://raw.githubusercontent.com/Homebrew/install/master/install",
+				)
+			end
 		end
 	end
 
@@ -136,14 +128,6 @@ module Borkstrap
 		end
 	end
 
-	PLATFORMS = Cases.new([
-		Cases::Entry.new(/linux/, Platform.new(
-			brew_url: "https://raw.githubusercontent.com/Linuxbrew/install/master/install",
-		)),
-		Cases::Entry.new(/darwin/, Platform.new(
-			brew_url: "https://raw.githubusercontent.com/Homebrew/install/master/install",
-		)),
-	])
 
 	if __FILE__ == $0
 		options = OptionParser.new(ARGV).call
